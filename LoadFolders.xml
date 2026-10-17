@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<loadFolders>
+  <v1.5>
+    <li>/</li>
+    <li>1.6</li>
+  </v1.5>
+  <v1.6>
+    <li>/</li>
+    <li>1.6</li>
+  </v1.6>
+  <!-- 1.7 起游戏改为 CoreCLR（net10.0），程序集与 1.6 不通用，必须使用 1.7 目录下的独立构建。 -->
+  <v1.7>
+    <li>/</li>
+    <li>1.7</li>
+  </v1.7>
+</loadFolders>

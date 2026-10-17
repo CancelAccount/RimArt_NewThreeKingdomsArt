@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 1.6 版本工程。源码统一放在仓库根 Source/（单一事实源），本工程只负责 1.6 的编译目标与引用布局。
+       1.7 起游戏改用 CoreCLR（net10.0），引用布局完全不同，见 ..\..\1.7\Source\NewThreeKingdomsArt.csproj。
+       注意：本机游戏已升级到 1.7，RimWorldWin64_Data\Managed 已不存在；
+       如需重编 1.6 版，请用 -p:RimWorldDir=<1.6 游戏目录> 指向旧版安装。 -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>NewThreeKingdomsArt</AssemblyName>
+    <RootNamespace>NewThreeKingdomsArt</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- 关闭 TFM 子目录追加，OutputPath 即 dll 落点 -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- 游戏直接加载 mod dll，不生成 .deps.json（保持 Assemblies 目录只有 dll） -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <!-- 本目录不放 .cs（源码共享自根 Source），关闭默认 glob 后由下方显式通配引入 -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Debug 产物不覆盖入库的发行 dll -->
+    <OutputPath Condition="'$(Configuration)' == 'Debug'">..\AssembliesDebug</OutputPath>
+    <OutputPath Condition="'$(Configuration)' != 'Debug'">..\Assemblies</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RimWorldDir>..\..\..\..\</RimWorldDir>
+    <HarmonyDir>$(RimWorldDir)..\..\workshop\content\294100\2009463077\1.6\Assemblies</HarmonyDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Source\**\*.cs" Exclude="..\..\Source\bin\**;..\..\Source\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RimWorldDir)\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(RimWorldDir)\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(RimWorldDir)\RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(RimWorldDir)\RimWorldWin64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>$(RimWorldDir)\RimWorldWin64_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

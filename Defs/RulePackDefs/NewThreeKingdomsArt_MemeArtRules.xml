@@ -7,6 +7,8 @@
       <rulesStrings>
         <!-- Entry -->
         <li>r_art_description(p=1)->[ntkmeme_scene]</li>
+        <!-- Entry（Odyssey 雕像走 CompStatue，根关键字是 r_statue_description） -->
+        <li>r_statue_description(p=1)->[ntkmeme_scene]</li>
 
         <!-- Meme scenes -->
         <!-- What will we eat without you -->

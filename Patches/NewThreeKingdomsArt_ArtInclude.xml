@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  把新三国规则包挂到原版艺术描述包（descriptionMaker）的 <rulePack> 上。
+
+  为什么不再用 Harmony 注入：
+    原实现是在 GameComponent.StartedNewGame() 里给 TaleTextGenerator.GenerateTextFromTale
+    打 Prefix。但此时地图生成（Game.InitNewGame 内部）早已调用过该方法生成艺术品标题，
+    方法已被 JIT 编译（甚至内联），1.7 的 CoreCLR + Harmony 3 下补丁不再生效，
+    表现为权重调多高都没有新三描述、日志里也没有任何 Prefix 输出。
+    XML include 在 Def 加载阶段完成，与运行时 JIT 时机无关，1.6 / 1.7 通用。
+
+  为什么挂在 <rulePack> 内而不是 Def 级：
+    Odyssey 的 ArtDescription_Statue 自带 Def 级 <include>，再追加一个同名节点会触发
+    「defines the same field twice」并覆盖原 include；<rulePack> 内没有任何原版 include，
+    新增节点不会冲突。RulePack.Rules 会把 include 链内联进 RulesImmediate，
+    CompArt 和 CompStatue 两条描述路径都能取到本模组规则。
+
+  分支规则与原 Prefix 一致：
+    - 所有普通艺术描述包：SharedRules + MemeArtRules
+    - 魔方雕塑：SharedRules + CubeArtRules
+    - 虚空雕塑：不注入（保持原版文本）
+-->
+<Patch>
+
+  <!-- 普通艺术：除魔方 / 虚空雕塑外的所有 ArtDescription_* 物理描述包 -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/RulePackDef[starts-with(defName,"ArtDescription_") and defName!="ArtDescription_CubeSculpture" and defName!="ArtDescription_VoidSculpture"]/rulePack</xpath>
+    <value>
+      <include>
+        <li>NewThreeKingdomsArt_SharedRules</li>
+        <li>NewThreeKingdomsArt_MemeArtRules</li>
+      </include>
+    </value>
+  </Operation>
+
+  <!-- 魔方雕塑：只挂魔方专用场景 -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/RulePackDef[defName="ArtDescription_CubeSculpture"]/rulePack</xpath>
+    <value>
+      <include>
+        <li>NewThreeKingdomsArt_SharedRules</li>
+        <li>NewThreeKingdomsArt_CubeArtRules</li>
+      </include>
+    </value>
+  </Operation>
+
+</Patch>

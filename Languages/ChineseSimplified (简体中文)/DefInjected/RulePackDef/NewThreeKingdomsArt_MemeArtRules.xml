@@ -17,6 +17,8 @@
 
     <!-- ===== 入口规则 ===== -->
     <li>r_art_description(p=1)->[ntkmeme_scene]</li>
+    <!-- 入口（Odyssey 雕像走 CompStatue，根关键字是 r_statue_description） -->
+    <li>r_statue_description(p=1)->[ntkmeme_scene]</li>
 
     <!-- ===== 名场面 ===== -->
     <!--1.你走了，我们吃什么-->
@@ -48,7 +50,7 @@
     <!--14.庸主-->
     <li>ntkmeme_scene->[ntkmeme_artwork][depicts]了[ntkmeme_specialCharacter]下令：“[NamePerson]辱我，杖二十军棍！”[side_position]被杖责的人显得[AdjectiveAny]，一边挨打一边高叫着：“庸主，庸，庸，庸主！你是个庸主！”这件事看起来发生在[ntkmeme_location]。</li>
     <!--15.竟然不许-->
-    <li>ntkmeme_scene->[ntkmeme_artwork][depicts]了一位[ntkmeme_race],其神态[ntkmeme_emotional_expression_strong],并配文：“我上表[ntkmeme_specialCharacter]，让她封我为[ntkmeme_officialPosition]，竟然不许！一定是看我在[ntkmeme_faction]的日渐强盛，才故意驳回我的请求！”。</li>
+    <li>ntkmeme_scene->[ntkmeme_artwork][depicts]了一位[ntkmeme_race],其神态[ntkmeme_emotional_expression_strong],并配文：“我上表[ntkmeme_specialCharacter]，让她封我为[ntkmeme_officialPosition]，竟然不许！一定是看我在[ntkmeme_faction]日渐强盛，才故意驳回我的请求！”。</li>
     <!--16.一把仁之剑，一把义之剑-->
     <li>ntkmeme_scene->[ntkmeme_artwork][depicts]了两把[ColorBadass]的剑，[style_clause]。两把剑上分别写着“仁之剑”和“义之剑”，展现出了[ConceptPositive]。</li>
     <!--17.这江东到底你是主还是我是主-->

@@ -1,6 +1,16 @@
 # ===== .NET 构建产物 =====
 Source/bin/
 Source/obj/
+1.6/Source/bin/
+1.6/Source/obj/
+1.7/Source/bin/
+1.7/Source/obj/
+1.6/AssembliesDebug/
+1.7/AssembliesDebug/
+
+# ===== 发布流水线产物 =====
+# Tools/Build-Release.ps1 的输出（stage 组装目录 + 两个 zip），一律不入库
+dist/
 
 # ===== IDE 文件 =====
 .vs/

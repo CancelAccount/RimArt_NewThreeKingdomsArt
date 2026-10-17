@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,7 +10,8 @@ namespace NewThreeKingdomsArt
 {
     /// <summary>
     /// 运行时修改新三入口规则权重，并注入动态派系名称。
-    /// include 注入已由 MemeGameComponent 的 Harmony Prefix 处理，本类不再负责。
+    /// 规则包 include 由 Patches/NewThreeKingdomsArt_ArtInclude.xml 在 Def 加载阶段注入，
+    /// 本类不再负责补丁注册。
     /// </summary>
     public static class MemeWeightApplier
     {
@@ -20,6 +22,9 @@ namespace NewThreeKingdomsArt
 
         private static readonly Regex PWeightRegex = new Regex(@"\(p=[\d.]+\)");
 
+        /// <summary>
+        /// 应用当前设置：注入派系名、替换入口权重，并刷新被 include 的上游规则包缓存。
+        /// </summary>
         public static void Apply()
         {
             float p = NewThreeKingdomsArtMod.Settings.memeWeight;
@@ -28,9 +33,14 @@ namespace NewThreeKingdomsArt
             // 注入动态派系名称
             InjectFactionNames();
 
-            // 替换入口权重
-            ReplaceEntryWeight(NTKDefName, p);
-            ReplaceEntryWeight(NTKCubeDefName, p);
+            // 替换入口权重（雕像描述是多条原版规则竞争，需按条数等比放大）
+            int statueCompetitors = CountStatueCompetitorRules();
+            float pStatue = p * Math.Max(1, statueCompetitors);
+            ReplaceEntryWeight(NTKDefName, p, pStatue);
+            ReplaceEntryWeight(NTKCubeDefName, p, pStatue);
+
+            // 上游描述包的 rulesResolved 会把 include 链内联缓存，必须一并刷新
+            RefreshIncludeCaches(p);
 
             Log.Message($"{Tag} Apply() 完成");
         }
@@ -66,9 +76,10 @@ namespace NewThreeKingdomsArt
         }
 
         /// <summary>
-        /// 替换单个 Def 中 r_art_description(p=N) 的权重并清除缓存。
+        /// 替换单个 Def 中 r_art_description / r_statue_description 的权重并清除缓存。
+        /// 两个根关键字使用不同权重：雕像描述有多条原版规则竞争，入口需等比放大。
         /// </summary>
-        private static void ReplaceEntryWeight(string defName, float p)
+        private static void ReplaceEntryWeight(string defName, float pArt, float pStatue)
         {
             var def = DefDatabase<RulePackDef>.GetNamedSilentFail(defName);
             if (def == null) return;
@@ -76,13 +87,14 @@ namespace NewThreeKingdomsArt
             var rulePack = Traverse.Create(def).Field<RulePack>("rulePack").Value;
             if (rulePack == null) return;
 
-            ReplaceInStrings(rulePack, "rulesStrings", p);
-            ReplaceInStrings(rulePack, "untranslatedRulesStrings", p);
+            ReplaceInStrings(rulePack, "rulesStrings", pArt, pStatue);
+            ReplaceInStrings(rulePack, "untranslatedRulesStrings", pArt, pStatue);
 
             ClearDefCaches(def, defName);
         }
 
-        private static void ReplaceInStrings(RulePack rp, string fieldName, float p)
+        /// <summary>按入口关键字分别替换权重；非入口规则原样保留。</summary>
+        private static void ReplaceInStrings(RulePack rp, string fieldName, float pArt, float pStatue)
         {
             var list = Traverse.Create(rp).Field<List<string>>(fieldName).Value;
             if (list == null) return;
@@ -90,19 +102,117 @@ namespace NewThreeKingdomsArt
             int modified = 0;
             for (int i = 0; i < list.Count; i++)
             {
+                float weight;
                 if (list[i].StartsWith("r_art_description"))
                 {
-                    string oldStr = list[i];
-                    string newStr = PWeightRegex.Replace(oldStr, $"(p={p})");
-                    if (oldStr != newStr)
-                    {
-                        list[i] = newStr;
-                        modified++;
-                    }
+                    weight = pArt;
+                }
+                else if (list[i].StartsWith("r_statue_description"))
+                {
+                    weight = pStatue;
+                }
+                else
+                {
+                    continue;
+                }
+
+                string oldStr = list[i];
+                string newStr = PWeightRegex.Replace(oldStr, $"(p={weight})");
+                if (oldStr != newStr)
+                {
+                    list[i] = newStr;
+                    modified++;
                 }
             }
             if (modified > 0)
                 Log.Message($"{Tag}   [{fieldName}] 修改了 {modified} 条");
+        }
+
+        /// <summary>
+        /// 统计原版 ArtDescription_Statue 中 r_statue_description 的规则条数。
+        /// 雕像描述是「多选一」，把本模组入口权重放大相同倍数，
+        /// 实际触发率才仍等于 UI 显示的 p/(1+p)。
+        /// </summary>
+        private static int CountStatueCompetitorRules()
+        {
+            var def = DefDatabase<RulePackDef>.GetNamedSilentFail("ArtDescription_Statue");
+            if (def == null) return 1;
+
+            var rulePack = Traverse.Create(def).Field<RulePack>("rulePack").Value;
+            if (rulePack == null) return 1;
+
+            var list = Traverse.Create(rulePack).Field<List<string>>("rulesStrings").Value;
+            if (list == null) return 1;
+
+            int count = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].StartsWith("r_statue_description")) count++;
+            }
+            return count > 0 ? count : 1;
+        }
+
+        /// <summary>
+        /// 刷新所有 include 了本模组规则包的上游规则包缓存，并自检挂载是否生效。
+        /// 原版 RulePack.Rules 会把 include 链内联缓存进 rulesResolved，
+        /// 不刷新则继续使用改权重之前的旧规则对象。
+        /// </summary>
+        private static void RefreshIncludeCaches(float p)
+        {
+            var ours = new List<RulePackDef>();
+            AddIfExists(ours, NTKDefName);
+            AddIfExists(ours, NTKCubeDefName);
+            AddIfExists(ours, SharedRulesDefName);
+            if (ours.Count == 0) return;
+
+            int refreshed = 0;
+            int artMakers = 0;
+            foreach (var def in DefDatabase<RulePackDef>.AllDefs)
+            {
+                if (ours.Contains(def)) continue;
+                if (!IncludesAny(def, ours)) continue;
+
+                ClearDefCaches(def, def.defName);
+                refreshed++;
+                if (def.defName.StartsWith("ArtDescription_")) artMakers++;
+            }
+
+            Log.Message($"{Tag} 刷新 {refreshed} 个上游规则包缓存（p={p}，其中艺术描述包 {artMakers} 个）");
+
+            if (artMakers == 0)
+            {
+                Log.Error($"{Tag} ✗ 没有任何艺术描述包 include 新三规则包，"
+                    + "Patches/NewThreeKingdomsArt_ArtInclude.xml 未生效，权重设置将无效");
+            }
+        }
+
+        /// <summary>按 defName 取规则包并加入列表；不存在时跳过。</summary>
+        private static void AddIfExists(List<RulePackDef> list, string defName)
+        {
+            var def = DefDatabase<RulePackDef>.GetNamedSilentFail(defName);
+            if (def != null) list.Add(def);
+        }
+
+        /// <summary>判断规则包是否直接 include 了给定规则包之一（Def 级或 RulePack 级）。</summary>
+        private static bool IncludesAny(RulePackDef def, List<RulePackDef> targets)
+        {
+            if (def.include != null)
+            {
+                for (int i = 0; i < def.include.Count; i++)
+                {
+                    if (def.include[i] != null && targets.Contains(def.include[i])) return true;
+                }
+            }
+
+            var rp = Traverse.Create(def).Field<RulePack>("rulePack").Value;
+            if (rp != null && rp.include != null)
+            {
+                for (int i = 0; i < rp.include.Count; i++)
+                {
+                    if (rp.include[i] != null && targets.Contains(rp.include[i])) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

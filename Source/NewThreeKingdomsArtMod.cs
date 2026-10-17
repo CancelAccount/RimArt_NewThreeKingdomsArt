@@ -1,4 +1,3 @@
-using HarmonyLib;
 using UnityEngine;
 using Verse;
 
@@ -15,7 +14,6 @@ namespace NewThreeKingdomsArt
         public NewThreeKingdomsArtMod(ModContentPack content) : base(content)
         {
             Settings = GetSettings<NewThreeKingdomsArtSettings>();
-            new Harmony("Cancelation.NewThreeKingdomsArt").PatchAll();
         }
 
         /// <summary>
@@ -101,9 +99,7 @@ namespace NewThreeKingdomsArt
 
             listing.Gap(8f);
             listing.Label("公式: 概率 = p / (原版权重合计 + p)");
-            listing.Label("p=0.25→20%/14% | p=1→50%/33% | p=4→80%/67% | p=99→99%/98%");
-            listing.Label("从新创作的艺术品开始生效，已有艺术不变。");
-
+            listing.Label("(若有其他mod注入同名规则，分母会相应增大)");
             listing.End();
             base.DoSettingsWindowContents(inRect);
         }

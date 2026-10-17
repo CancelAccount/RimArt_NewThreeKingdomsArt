@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 1.7 版本工程。源码与 1.6 工程共享（仓库根 Source/），仅目标框架与引用布局不同：
+       · 1.7 运行时为定制 CoreCLR（net10.0），游戏程序集不再位于 RimWorldWin64_Data\Managed，
+         而是扁平放在游戏根目录（Assembly-CSharp.dll / UnityStubs.dll）；
+         UnityEngine.* 由 UnityStubs.dll 统一承载。
+       · Harmony 换为 Harmony 3（for .NET 10），位于工坊 mod 2009463077 的 1.7/Assemblies。 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <AssemblyName>NewThreeKingdomsArt</AssemblyName>
+    <RootNamespace>NewThreeKingdomsArt</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- 关闭 TFM 子目录追加，OutputPath 即 dll 落点 -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- 游戏直接加载 mod dll，不生成 .deps.json（保持 Assemblies 目录只有 dll） -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <!-- 本目录不放 .cs（源码共享自根 Source），关闭默认 glob 后由下方显式通配引入 -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Debug 产物不覆盖入库的发行 dll -->
+    <OutputPath Condition="'$(Configuration)' == 'Debug'">..\AssembliesDebug</OutputPath>
+    <OutputPath Condition="'$(Configuration)' != 'Debug'">..\Assemblies</OutputPath>
+  </PropertyGroup>
+
+  <!-- 1.7 程序集布局：游戏根（4 层 .. 回到 RimWorld），Harmony 在工坊 mod 的 1.7/Assemblies。
+       命令行可覆盖：dotnet build -p:RimWorldDir=<目录> -p:HarmonyDir=<目录> -->
+  <PropertyGroup>
+    <RimWorldDir>..\..\..\..</RimWorldDir>
+    <HarmonyDir>$(RimWorldDir)\..\..\workshop\content\294100\2009463077\1.7\Assemblies</HarmonyDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Source\**\*.cs" Exclude="..\..\Source\bin\**;..\..\Source\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RimWorldDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityStubs">
+      <HintPath>$(RimWorldDir)\UnityStubs.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
